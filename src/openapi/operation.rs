@@ -1,4 +1,4 @@
-use crate::http::{ParameterType, RequestResponse};
+use crate::http::{ParameterType, RequestBody, RequestResponse};
 use crate::openapi;
 use crate::openapi::parameter;
 use indexmap::indexmap;
@@ -6,6 +6,36 @@ use itertools::Itertools;
 use openapiv3 as oa;
 use openapiv3::{RefOr, ReferenceOr};
 use std::str::FromStr;
+
+pub fn make_body(body: &Option<RequestBody>) -> Option<RefOr<oa::RequestBody>> {
+    let body = body.as_ref()?;
+    if !body.mime.starts_with("application/json") {
+        return None;
+    };
+    let obj = body.content.as_object()?;
+    let mut schema = oa::Schema::new_object();
+    let mut props = schema.properties_mut();
+    for (key, value) in obj {
+        let name = key.to_string();
+        if value.is_number() {
+            props.insert(name, oa::Schema::new_number());
+        } else if value.is_boolean() {
+            props.insert(name, oa::Schema::new_bool());
+        } else if value.is_string() {
+            props.insert(name, oa::Schema::new_string());
+        }
+    }
+    Some(RefOr::Item(oa::RequestBody {
+        content: indexmap! {
+            "application/json".to_string() => oa::MediaType {
+                schema: Some(RefOr::Item(schema)),
+                ..oa::MediaType::default()
+            },
+        },
+        required: true,
+        ..oa::RequestBody::default()
+    }))
+}
 
 pub fn create_operation(rr: &RequestResponse) -> anyhow::Result<oa::Operation> {
     let response = rr.response_schema_ref();
@@ -27,14 +57,15 @@ pub fn create_operation(rr: &RequestResponse) -> anyhow::Result<oa::Operation> {
         p.required = true;
         parameters.push(p.into());
     }
+    let body = make_body(&rr.request.body);
     Ok(oa::Operation {
         operation_id: Some(rr.operation_id().to_string()),
         parameters,
-        request_body: None,
+        request_body: body,
         responses: oa::Responses {
             default: None,
             responses: indexmap! {
-                oa::StatusCode::Code(200) => oa::ReferenceOr::Item(response),
+                oa::StatusCode::Code(200) => ReferenceOr::Item(response),
             },
             extensions: Default::default(),
         },

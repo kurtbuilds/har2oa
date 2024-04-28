@@ -202,8 +202,8 @@ fn ignore_header(h: &str) -> bool {
     ].contains(&h)
 }
 
-impl From<har::v1_2::Entries> for RequestResponse {
-    fn from(entry: har::v1_2::Entries) -> Self {
+impl From<Entries> for RequestResponse {
+    fn from(entry: Entries) -> Self {
         let mut request = Request {
             url: Url::parse(&entry.request.url).unwrap(),
             headers: entry.request.headers.into_iter()
@@ -215,6 +215,23 @@ impl From<har::v1_2::Entries> for RequestResponse {
                 .map(|h| (urlparse::unquote(h.name).unwrap(), h.value))
                 .collect(),
             method: entry.request.method,
+            body: entry.request.post_data
+                .map(|pd| {
+                    let mime = pd.mime_type;
+                    let content = if let Some(text) = pd.text {
+                        if let Ok(json) = serde_json::from_str(&text) {
+                            json
+                        } else {
+                            Value::String(text)
+                        }
+                    } else {
+                        Value::Null
+                    };
+                    RequestBody {
+                        mime,
+                        content,
+                    }
+                })
         };
         let data = match entry.response.content.text {
             Some(text) => {

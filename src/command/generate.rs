@@ -17,6 +17,8 @@ pub struct Generate {
     /// Add cookie authentication. E.g. `--cookie sessid` adds a security schema where a cookie named `sessid` is required
     #[clap(long)]
     pub cookie: Option<String>,
+    #[clap(short, long)]
+    pub output: Option<String>,
 }
 
 impl Generate {
@@ -79,7 +81,8 @@ impl Generate {
         };
 
         let s = serde_yaml::to_string(&schema)?;
-        let path = "openapi.yaml";
+        let path = self.output.as_deref().unwrap_or("openapi.yaml");
+        // let path = "openapi.yaml";
         fs::write(path, &s)?;
         println!("{}: Wrote file.", path);
         Ok(())
