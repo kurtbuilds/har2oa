@@ -115,7 +115,7 @@ impl RequestInfo {
 
         let mut path_segments = request.url.path()
             .split("/")
-            .skip(2)
+            .skip(1)
             .filter(|s| !s.is_empty())
             .map(String::from)
             .map(|s| {

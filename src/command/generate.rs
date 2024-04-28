@@ -63,7 +63,7 @@ impl Generate {
         };
 
         response::create_schema_for_responses(&rrs, &mut schema.components)?;
-        operation::create_paths(&rrs, &mut schema.paths);
+        operation::create_paths(&rrs, &mut schema.paths, &schema.servers.first().as_ref().unwrap().url);
 
         if let Some(cookie) = self.cookie {
             schema.security = vec![indexmap! {

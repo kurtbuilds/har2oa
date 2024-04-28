@@ -73,10 +73,11 @@ pub fn create_operation(rr: &RequestResponse) -> anyhow::Result<oa::Operation> {
     })
 }
 
-pub fn create_paths(rrs: &Vec<RequestResponse>, paths: &mut oa::Paths) -> anyhow::Result<()> {
+pub fn create_paths(rrs: &Vec<RequestResponse>, paths: &mut oa::Paths, server: &str) -> anyhow::Result<()> {
     for rr in rrs {
         let operation = create_operation(rr)?;
         let method = oa::PathMethod::from_str(rr.info.method.to_uppercase().as_str()).unwrap();
+        println!("{}", &rr.info.path);
         paths.insert_operation(rr.info.path.clone(), method, operation);
     }
     Ok(())

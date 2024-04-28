@@ -2,7 +2,6 @@ pub mod operation;
 mod parameter;
 pub(crate) mod response;
 mod schema;
-mod str_munge;
 
 use crate::http::{singular, Request, RequestResponse};
 use anyhow::anyhow;
