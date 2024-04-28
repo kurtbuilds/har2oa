@@ -202,7 +202,7 @@ fn create_schema(
                 let Ok(schema) = create_schema(components, value, schema_name, rr) else {
                     continue;
                 };
-                s.set_required(key, true);
+                s.add_required(key);
                 if use_reference(&schema) {
                     let schema_name = schema_name
                         .unwrap_or_else(|| rr.object_name())
@@ -213,9 +213,9 @@ fn create_schema(
                     } else {
                         info!(name=%schema_name, url=rr.request.url.as_str(), "Added schema");
                     }
-                    s.add_property(key, ReferenceOr::schema_ref(&schema_name));
+                    s.properties_mut().insert(key, RefOr::schema_ref(&schema_name));
                 } else {
-                    s.add_property(key, schema);
+                    s.properties_mut().insert(key, schema);
                 }
             }
             s
@@ -230,8 +230,9 @@ fn add_response_schemas(components: &mut oa::Components, rr: &RequestResponse) -
     let schema = create_schema(components, &response_data, None, rr)?;
     let object_name = rr.response_object_name();
     let map = components.schemas.deref_mut();
-    map.insert(object_name.to_string(), schema.into())
-        .ok_or_else(|| panic!("Schema already exists: {}", rr.response_object_name()));
+    if let Some(old) = map.insert(object_name.to_string(), schema.into()) {
+        warn!(name=%object_name, existing=?Lu(old), "Schema already exists");
+    }
     Ok(())
 }
 
